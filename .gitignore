@@ -11,13 +11,13 @@ test
 example
 predict
 
-# MNIST data files
-*.gz
-*-ubyte
-data/
+# MNIST data files - now included in repo
+# *.gz
+# *-ubyte
+# data/
 
 # Model weights
-*.weights
+# *.weights
 
 # Editor files
 *.swp

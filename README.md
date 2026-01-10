@@ -79,19 +79,21 @@ bin/example
 
 ## 📊 Train on MNIST
 
-### Download Dataset
+### Dataset
 
-```bash
-./download_mnist.sh
-```
+The MNIST dataset is **included in this repository** in the `data/` directory:
+- `train-images.idx3-ubyte` - 60,000 training images
+- `train-labels.idx1-ubyte` - Training labels
+- `t10k-images.idx3-ubyte` - 10,000 test images
+- `t10k-labels.idx1-ubyte` - Test labels
 
-Or manually download from [MNIST Database](http://yann.lecun.com/exdb/mnist/) and place in `data/` directory.
+No download required! The data is ready to use.
 
 ### Train the Model
 
 ```bash
-bin/train data/train-images-idx3-ubyte data/train-labels-idx1-ubyte \
-          data/t10k-images-idx3-ubyte data/t10k-labels-idx1-ubyte
+bin/train data/train-images.idx3-ubyte data/train-labels.idx1-ubyte \
+          data/t10k-images.idx3-ubyte data/t10k-labels.idx1-ubyte
 ```
 
 Expected performance:
@@ -137,7 +139,6 @@ c_ml_demo/
 │
 ├── Build & Utilities
 │   ├── Makefile        - Build configuration
-│   ├── download_mnist.sh - Dataset downloader
 │   └── .gitignore      - Git ignore patterns
 │
 ├── Directory Structure
