@@ -1,0 +1,35 @@
+# Compiled object files
+*.o
+*.obj
+
+# Build directories and binaries
+bin/
+
+# Executables (if copied to root)
+train
+test
+example
+predict
+
+# MNIST data files
+*.gz
+*-ubyte
+data/
+
+# Model weights
+*.weights
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
