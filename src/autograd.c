@@ -5,14 +5,24 @@
 #include <string.h>
 
 // Tensor creation and destruction
+
+/**
+ * Creates a tensor for automatic differentiation
+ * This is a leaf node in the computational graph (no parents)
+ */
 Tensor* tensor_create(Matrix* data, int requires_grad) {
   Tensor* t = (Tensor*)malloc(sizeof(Tensor));
-  t->data = data;
-  t->grad = NULL;
+  t->data = data;  // Store the actual values
+  t->grad = NULL;  // Gradient starts as NULL
+  
+  // If gradient tracking is enabled, allocate gradient matrix
+  // Initialize to zeros - gradients accumulate during backprop
   if (requires_grad) {
     t->grad = matrix_create(data->rows, data->cols);
     matrix_zeros(t->grad);
   }
+  
+  // Leaf nodes have no operation or parents
   t->op = OP_NONE;
   t->parent1 = NULL;
   t->parent2 = NULL;
@@ -38,20 +48,34 @@ void tensor_free(Tensor* t) {
 }
 
 // Forward operations
+
+/**
+ * Addition: z = a + b
+ * Builds computational graph by recording operation and parents
+ * During backward: ∂z/∂a = 1, ∂z/∂b = 1 (gradient flows unchanged)
+ */
 Tensor* tensor_add(Tensor* a, Tensor* b) {
+  // Forward computation: compute the result
   Matrix* result_data = matrix_add(a->data, b->data);
+  
+  // Enable gradient tracking if either parent requires it
   int requires_grad = a->requires_grad || b->requires_grad;
   Tensor* result = tensor_create(result_data, requires_grad);
 
+  // Build the computational graph: record how this tensor was created
   if (requires_grad) {
-    result->op = OP_ADD;
-    result->parent1 = a;
-    result->parent2 = b;
+    result->op = OP_ADD;      // Remember this came from addition
+    result->parent1 = a;       // Link to parent tensors
+    result->parent2 = b;       // This allows backward pass to propagate gradients
   }
 
   return result;
 }
 
+/**
+ * Subtraction: z = a - b
+ * During backward: ∂z/∂a = 1, ∂z/∂b = -1 (gradient negated for subtrahend)
+ */
 Tensor* tensor_sub(Tensor* a, Tensor* b) {
   Matrix* result_data = matrix_sub(a->data, b->data);
   int requires_grad = a->requires_grad || b->requires_grad;
@@ -66,6 +90,10 @@ Tensor* tensor_sub(Tensor* a, Tensor* b) {
   return result;
 }
 
+/**
+ * Element-wise multiplication: z = a ⊙ b
+ * During backward: ∂z/∂a = b, ∂z/∂b = a (gradient scaled by other input)
+ */
 Tensor* tensor_mul(Tensor* a, Tensor* b) {
   Matrix* result_data = matrix_mul(a->data, b->data);
   int requires_grad = a->requires_grad || b->requires_grad;
@@ -80,6 +108,11 @@ Tensor* tensor_mul(Tensor* a, Tensor* b) {
   return result;
 }
 
+/**
+ * Matrix multiplication: Z = A @ B
+ * During backward: ∂Z/∂A = grad_output @ B^T, ∂Z/∂B = A^T @ grad_output
+ * This is the core operation for neural network layers
+ */
 Tensor* tensor_matmul(Tensor* a, Tensor* b) {
   Matrix* result_data = matrix_matmul(a->data, b->data);
   int requires_grad = a->requires_grad || b->requires_grad;
@@ -94,18 +127,27 @@ Tensor* tensor_matmul(Tensor* a, Tensor* b) {
   return result;
 }
 
+/**
+ * ReLU activation: y = max(0, x)
+ * During backward: ∂y/∂x = 1 if x > 0, else 0 (gate gradient)
+ * Unary operation - only one parent
+ */
 Tensor* tensor_relu(Tensor* a) {
   Matrix* result_data = matrix_relu(a->data);
   Tensor* result = tensor_create(result_data, a->requires_grad);
 
   if (a->requires_grad) {
     result->op = OP_RELU;
-    result->parent1 = a;
+    result->parent1 = a;  // Only one parent for unary operations
   }
 
   return result;
 }
 
+/**
+ * Sigmoid activation: y = 1 / (1 + e^(-x))
+ * During backward: ∂y/∂x = y(1-y) (uses output value for efficiency)
+ */
 Tensor* tensor_sigmoid(Tensor* a) {
   Matrix* result_data = matrix_sigmoid(a->data);
   Tensor* result = tensor_create(result_data, a->requires_grad);
@@ -118,6 +160,11 @@ Tensor* tensor_sigmoid(Tensor* a) {
   return result;
 }
 
+/**
+ * Softmax activation: y_i = e^(x_i) / Σ(e^(x_j))
+ * Typically used with cross-entropy loss
+ * During backward: gradient depends on Jacobian matrix of softmax
+ */
 Tensor* tensor_softmax(Tensor* a) {
   Matrix* result_data = matrix_softmax(a->data);
   Tensor* result = tensor_create(result_data, a->requires_grad);
@@ -131,24 +178,38 @@ Tensor* tensor_softmax(Tensor* a) {
 }
 
 // Backward operations
+
+/**
+ * Backward pass: Computes gradients using reverse-mode automatic differentiation
+ * Traverses computational graph backwards, applying chain rule at each node
+ * This is the heart of backpropagation!
+ */
 void tensor_backward(Tensor* t) {
   if (!t->requires_grad) {
-    return;
+    return;  // Skip nodes that don't need gradients
   }
 
-  // Initialize gradient if this is the root (loss)
+  // Initialize gradient at output (loss) node
+  // By convention, ∂Loss/∂Loss = 1 (seed gradient for chain rule)
   if (t->grad->rows == 1 && t->grad->cols == 1 && t->grad->data[0] == 0.0f) {
     t->grad->data[0] = 1.0f;
   }
 
+  // Apply chain rule based on operation type
+  // For each case: local_gradient = ∂output/∂input
+  // Then: input.grad += local_gradient * t.grad (chain rule)
   switch (t->op) {
     case OP_ADD:
+      // Addition: z = a + b
+      // ∂z/∂a = 1, ∂z/∂b = 1
+      // Gradient flows unchanged to both parents
       if (t->parent1 && t->parent1->requires_grad) {
         if (!t->parent1->grad) {
           t->parent1->grad =
               matrix_create(t->parent1->data->rows, t->parent1->data->cols);
           matrix_zeros(t->parent1->grad);
         }
+        // Accumulate gradient (important for tensors used multiple times)
         matrix_add_inplace(t->parent1->grad, t->grad);
       }
       if (t->parent2 && t->parent2->requires_grad) {
@@ -162,6 +223,9 @@ void tensor_backward(Tensor* t) {
       break;
 
     case OP_SUB:
+      // Subtraction: z = a - b
+      // ∂z/∂a = 1, ∂z/∂b = -1
+      // Gradient flows to first parent unchanged, negated to second parent
       if (t->parent1 && t->parent1->requires_grad) {
         if (!t->parent1->grad) {
           t->parent1->grad =
@@ -176,6 +240,7 @@ void tensor_backward(Tensor* t) {
               matrix_create(t->parent2->data->rows, t->parent2->data->cols);
           matrix_zeros(t->parent2->grad);
         }
+        // Negate gradient for subtraction
         Matrix* neg_grad = matrix_scale(t->grad, -1.0f);
         matrix_add_inplace(t->parent2->grad, neg_grad);
         matrix_free(neg_grad);
@@ -183,12 +248,16 @@ void tensor_backward(Tensor* t) {
       break;
 
     case OP_MUL:
+      // Element-wise multiplication: z = a ⊙ b
+      // ∂z/∂a = b, ∂z/∂b = a
+      // Gradient is scaled by the other input (product rule)
       if (t->parent1 && t->parent1->requires_grad) {
         if (!t->parent1->grad) {
           t->parent1->grad =
               matrix_create(t->parent1->data->rows, t->parent1->data->cols);
           matrix_zeros(t->parent1->grad);
         }
+        // Chain rule: ∂Loss/∂a = ∂Loss/∂z * ∂z/∂a = grad * b
         Matrix* grad1 = matrix_mul(t->grad, t->parent2->data);
         matrix_add_inplace(t->parent1->grad, grad1);
         matrix_free(grad1);
@@ -199,6 +268,7 @@ void tensor_backward(Tensor* t) {
               matrix_create(t->parent2->data->rows, t->parent2->data->cols);
           matrix_zeros(t->parent2->grad);
         }
+        // Chain rule: ∂Loss/∂b = ∂Loss/∂z * ∂z/∂b = grad * a
         Matrix* grad2 = matrix_mul(t->grad, t->parent1->data);
         matrix_add_inplace(t->parent2->grad, grad2);
         matrix_free(grad2);
@@ -206,13 +276,19 @@ void tensor_backward(Tensor* t) {
       break;
 
     case OP_MATMUL:
+      // Matrix multiplication: Z = A @ B
+      // ∂Z/∂A = grad_output @ B^T
+      // ∂Z/∂B = A^T @ grad_output
+      // This is crucial for neural network weight updates!
       if (t->parent1 && t->parent1->requires_grad) {
         if (!t->parent1->grad) {
           t->parent1->grad =
               matrix_create(t->parent1->data->rows, t->parent1->data->cols);
           matrix_zeros(t->parent1->grad);
         }
-        // grad_a = grad_output @ b^T
+        // Gradient for left matrix: multiply grad by transpose of right matrix
+        // This ensures dimensions match: (m×n) @ (n×p) -> (m×p)
+        // grad_a shape must match a shape: (m×n) = (m×p) @ (p×n)
         Matrix* b_t = matrix_transpose(t->parent2->data);
         Matrix* grad1 = matrix_matmul(t->grad, b_t);
         matrix_add_inplace(t->parent1->grad, grad1);
@@ -225,7 +301,8 @@ void tensor_backward(Tensor* t) {
               matrix_create(t->parent2->data->rows, t->parent2->data->cols);
           matrix_zeros(t->parent2->grad);
         }
-        // grad_b = a^T @ grad_output
+        // Gradient for right matrix: multiply transpose of left matrix by grad
+        // grad_b shape must match b shape: (n×p) = (n×m) @ (m×p)
         Matrix* a_t = matrix_transpose(t->parent1->data);
         Matrix* grad2 = matrix_matmul(a_t, t->grad);
         matrix_add_inplace(t->parent2->grad, grad2);
@@ -235,13 +312,18 @@ void tensor_backward(Tensor* t) {
       break;
 
     case OP_RELU:
+      // ReLU: y = max(0, x)
+      // ∂y/∂x = 1 if x > 0, else 0
+      // Acts as a gradient gate - blocks gradient for negative inputs
       if (t->parent1 && t->parent1->requires_grad) {
         if (!t->parent1->grad) {
           t->parent1->grad =
               matrix_create(t->parent1->data->rows, t->parent1->data->cols);
           matrix_zeros(t->parent1->grad);
         }
+        // Compute local gradient (1 for positive, 0 for negative)
         Matrix* relu_grad = matrix_relu_derivative(t->parent1->data);
+        // Chain rule: multiply incoming gradient by local gradient
         Matrix* grad = matrix_mul(t->grad, relu_grad);
         matrix_add_inplace(t->parent1->grad, grad);
         matrix_free(relu_grad);
@@ -250,12 +332,16 @@ void tensor_backward(Tensor* t) {
       break;
 
     case OP_SIGMOID:
+      // Sigmoid: y = 1 / (1 + e^(-x))
+      // ∂y/∂x = y(1-y) = sigmoid(x)(1-sigmoid(x))
+      // Efficient: uses output value instead of recomputing sigmoid
       if (t->parent1 && t->parent1->requires_grad) {
         if (!t->parent1->grad) {
           t->parent1->grad =
               matrix_create(t->parent1->data->rows, t->parent1->data->cols);
           matrix_zeros(t->parent1->grad);
         }
+        // Local gradient: sigmoid'(x) = sigmoid(x) * (1 - sigmoid(x))
         Matrix* sig_grad = matrix_sigmoid_derivative(t->parent1->data);
         Matrix* grad = matrix_mul(t->grad, sig_grad);
         matrix_add_inplace(t->parent1->grad, grad);
@@ -265,24 +351,30 @@ void tensor_backward(Tensor* t) {
       break;
 
     case OP_SOFTMAX:
-      // For softmax with cross-entropy, gradient is typically computed directly
-      // Here we implement simplified version
+      // Softmax: y_i = e^(x_i) / Σ(e^(x_j))
+      // Full gradient: ∂y_i/∂x_j = y_i(δ_ij - y_j) [Jacobian matrix]
+      // When combined with cross-entropy loss, simplifies to (y - target)
+      // Here we implement simplified version - in practice, combined with loss
       if (t->parent1 && t->parent1->requires_grad) {
         if (!t->parent1->grad) {
           t->parent1->grad =
               matrix_create(t->parent1->data->rows, t->parent1->data->cols);
           matrix_zeros(t->parent1->grad);
         }
+        // Pass gradient through unchanged (simplified for softmax+cross-entropy)
         matrix_add_inplace(t->parent1->grad, t->grad);
       }
       break;
 
     case OP_NONE:
-      // Leaf node, no backward pass needed
+      // Leaf node (input/parameter), no backward pass needed
+      // Gradients stop here - these are the values we update during training
       break;
   }
 
-  // Recursively backward through parents
+  // Recursively backward through parents (reverse topological order)
+  // This implements reverse-mode automatic differentiation
+  // Ensures gradients propagate from outputs back to all inputs
   if (t->parent1) {
     tensor_backward(t->parent1);
   }
@@ -291,6 +383,12 @@ void tensor_backward(Tensor* t) {
   }
 }
 
+/**
+ * Reset gradients to zero
+ * CRITICAL: Must be called before each training iteration
+ * Otherwise gradients accumulate across batches (usually unwanted)
+ * Exception: gradient accumulation for large batches
+ */
 void tensor_zero_grad(Tensor* t) {
   if (t && t->grad) {
     matrix_zeros(t->grad);

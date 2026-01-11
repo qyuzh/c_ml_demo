@@ -19,16 +19,16 @@ int save_weights(const char* filename, Linear** layers, size_t num_layers) {
     Linear* layer = layers[i];
 
     // Write dimensions
-    fwrite(&layer->weights->rows, sizeof(size_t), 1, fp);
-    fwrite(&layer->weights->cols, sizeof(size_t), 1, fp);
+    fwrite(&layer->weights->data->rows, sizeof(size_t), 1, fp);
+    fwrite(&layer->weights->data->cols, sizeof(size_t), 1, fp);
 
     // Write weights
-    size_t weight_size = layer->weights->rows * layer->weights->cols;
-    fwrite(layer->weights->data, sizeof(float), weight_size, fp);
+    size_t weight_size = layer->weights->data->rows * layer->weights->data->cols;
+    fwrite(layer->weights->data->data, sizeof(float), weight_size, fp);
 
     // Write bias
-    size_t bias_size = layer->bias->cols;
-    fwrite(layer->bias->data, sizeof(float), bias_size, fp);
+    size_t bias_size = layer->bias->data->cols;
+    fwrite(layer->bias->data->data, sizeof(float), bias_size, fp);
   }
 
   fclose(fp);
@@ -74,7 +74,7 @@ int load_weights(const char* filename, Linear** layers, size_t num_layers) {
     }
 
     // Check dimensions match
-    if (rows != layer->weights->rows || cols != layer->weights->cols) {
+    if (rows != layer->weights->data->rows || cols != layer->weights->data->cols) {
       fprintf(stderr, "Error: Layer %zu dimension mismatch\n", i);
       fclose(fp);
       return -1;
@@ -82,7 +82,7 @@ int load_weights(const char* filename, Linear** layers, size_t num_layers) {
 
     // Read weights
     size_t weight_size = rows * cols;
-    if (fread(layer->weights->data, sizeof(float), weight_size, fp) !=
+    if (fread(layer->weights->data->data, sizeof(float), weight_size, fp) !=
         weight_size) {
       fprintf(stderr, "Error: Failed to read layer %zu weights\n", i);
       fclose(fp);
@@ -91,7 +91,7 @@ int load_weights(const char* filename, Linear** layers, size_t num_layers) {
 
     // Read bias
     size_t bias_size = cols;
-    if (fread(layer->bias->data, sizeof(float), bias_size, fp) != bias_size) {
+    if (fread(layer->bias->data->data, sizeof(float), bias_size, fp) != bias_size) {
       fprintf(stderr, "Error: Failed to read layer %zu bias\n", i);
       fclose(fp);
       return -1;

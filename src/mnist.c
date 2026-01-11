@@ -140,13 +140,27 @@ void mnist_get_batch(MNISTDataset* dataset, size_t batch_start,
 
   // Copy data to batch
   for (size_t i = 0; i < batch_size; i++) {
+    // Dataset index: which sample to copy from
+    // Example: batch_start=32, i=5 → idx=37 (the 37th sample in dataset)
     size_t idx = batch_start + i;
 
-    // Copy image
+    // Copy image data to batch_images matrix
+    // Matrix layout: [batch_size x 784] stored in row-major order
+    // Row offset calculation: i * 784
+    //   - Row 0 starts at: 0 * 784 = 0
+    //   - Row 1 starts at: 1 * 784 = 784
+    //   - Row i starts at: i * 784
+    // Example: For i=2, copy to position 2*784=1568 (start of 3rd row)
     memcpy((*batch_images)->data + i * 784, dataset->images[idx]->data,
            784 * sizeof(float));
 
-    // One-hot encode label
+    // One-hot encode label in batch_labels matrix
+    // Matrix layout: [batch_size x 10] stored in row-major order
+    // Index calculation: i * 10 + label_class
+    //   - i * 10: offset to the start of row i
+    //   - + label_class: offset within the row to the correct class
+    // Example: i=2, label=7 → index = 2*10+7 = 27
+    //   This sets batch_labels[2][7] = 1.0 (row 2, column 7)
     (*batch_labels)->data[i * 10 + dataset->labels[idx]] = 1.0f;
   }
 }

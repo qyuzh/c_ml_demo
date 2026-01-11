@@ -1,0 +1,138 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/matrix.o",
+      "src/matrix.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/matrix.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/matrix.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/nn.o",
+      "src/nn.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/nn.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/nn.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/optimizer.o",
+      "src/optimizer.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/optimizer.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/optimizer.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/mnist.o",
+      "src/mnist.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/mnist.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/mnist.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/autograd.o",
+      "src/autograd.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/autograd.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/autograd.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/weights.o",
+      "src/weights.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/weights.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/weights.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/train.o",
+      "src/train.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/train.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/train.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-std=c11",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "bin/obj/predict.o",
+      "src/predict.c"
+    ],
+    "directory": "/home/qyuzh/workspace/c_ml_demo",
+    "file": "/home/qyuzh/workspace/c_ml_demo/src/predict.c",
+    "output": "/home/qyuzh/workspace/c_ml_demo/bin/obj/predict.o"
+  }
+]

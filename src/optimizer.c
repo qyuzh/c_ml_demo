@@ -1,5 +1,6 @@
 #include "optimizer.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 // Create optimizer
@@ -12,33 +13,40 @@ SGD* sgd_create(float learning_rate, float momentum, float weight_decay) {
 }
 
 void sgd_free(SGD* optimizer) {
-  if (optimizer) {
-    free(optimizer);
+  free(optimizer);
+}
+
+// Update a single tensor's parameters using its gradient
+void sgd_update_tensor(SGD* optimizer, Tensor* param) {
+  if (!param || !param->requires_grad || !param->grad) {
+    return;
+  }
+  
+  Matrix* data = param->data;
+  Matrix* grad = param->grad;
+  
+  // Update rule: param = param - learning_rate * (grad + weight_decay * param)
+  for (size_t i = 0; i < data->rows * data->cols; i++) {
+    // Add weight decay (L2 regularization)
+    float gradient = grad->data[i];
+    if (optimizer->weight_decay > 0.0f) {
+      gradient += optimizer->weight_decay * data->data[i];
+    }
+    
+    // SGD update: param -= learning_rate * gradient
+    data->data[i] -= optimizer->learning_rate * gradient;
   }
 }
 
-// Update parameters using SGD
+// Update parameters for all layers
 void sgd_step(SGD* optimizer, Linear** layers, size_t num_layers) {
   for (size_t i = 0; i < num_layers; i++) {
     Linear* layer = layers[i];
-
-    // Update weights: w = w - lr * (grad + weight_decay * w)
-    for (size_t j = 0; j < layer->weights->rows * layer->weights->cols; j++) {
-      float grad = layer->weight_grad->data[j];
-
-      // Add weight decay
-      if (optimizer->weight_decay > 0) {
-        grad += optimizer->weight_decay * layer->weights->data[j];
-      }
-
-      // Update weight
-      layer->weights->data[j] -= optimizer->learning_rate * grad;
-    }
-
-    // Update biases: b = b - lr * grad
-    for (size_t j = 0; j < layer->bias->cols; j++) {
-      layer->bias->data[j] -=
-          optimizer->learning_rate * layer->bias_grad->data[j];
-    }
+    
+    // Update weights
+    sgd_update_tensor(optimizer, layer->weights);
+    
+    // Update bias
+    sgd_update_tensor(optimizer, layer->bias);
   }
 }

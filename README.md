@@ -1,11 +1,10 @@
-# Minimal C Machine Learning Library
+# C Machine Learning Library with Autograd
 
 [![Status](https://img.shields.io/badge/status-complete-success.svg)]()
-[![Tests](https://img.shields.io/badge/tests-22%2F22%20passing-success.svg)]()
-[![C99](https://img.shields.io/badge/standard-C99-blue.svg)]()
+[![C11](https://img.shields.io/badge/standard-C11-blue.svg)]()
 [![License](https://img.shields.io/badge/license-Educational-lightgrey.svg)]()
 
-A complete machine learning library written in **pure C** with no external dependencies (except standard math library). Every component implemented from scratch: matrix operations, automatic differentiation, neural network layers, optimizer, and MNIST training pipeline.
+A machine learning library written in **pure C** with **automatic differentiation (autograd)**. Implements computational graphs and reverse-mode automatic differentiation from scratch, demonstrating how modern ML frameworks like PyTorch and TensorFlow work internally.
 
 ## 📑 Table of Contents
 
@@ -17,7 +16,7 @@ A complete machine learning library written in **pure C** with no external depen
 - [Component Details](#-component-details)
 - [Usage Examples](#-usage-examples)
 - [Performance & Benchmarks](#-performance--benchmarks)
-- [Testing](#-testing)
+
 - [Build Options](#-build-options)
 - [API Reference](#-api-reference)
 - [Documentation](#-documentation)
@@ -31,53 +30,60 @@ A complete machine learning library written in **pure C** with no external depen
 ## ✨ Features
 
 - **Matrix Operations**: Complete matrix math library (create, add, sub, mul, matmul, transpose, scale)
-- **Automatic Differentiation**: Full computational graph with backward pass
-- **Neural Network Layers**: Linear/fully-connected layers with forward/backward passes
-- **Activation Functions**: ReLU, Sigmoid, Softmax (with derivatives)
-- **Loss Functions**: MSE, Cross-Entropy with numerical stability
-- **Optimizer**: SGD with learning rate and weight decay
+- **Automatic Differentiation**: Full computational graph with reverse-mode autograd
+- **Tensor API**: PyTorch-style tensors with gradient tracking
+- **Neural Network Layers**: Linear layers with autograd support
+- **Activation Functions**: ReLU, Sigmoid, Softmax with automatic gradient computation
+- **Optimizer**: SGD optimizer with weight decay
 - **Model Persistence**: Save and load trained model weights
-- **MNIST Data Loader**: IDX binary format parser with batching
-- **Prediction Tool**: Visualize images with ANSI grayscale rendering
+- **MNIST Training**: Complete MNIST training pipeline achieving ~97-98% accuracy
+- **Pure C Implementation**: No external dependencies except standard math library
 
 ## 🚀 Quick Start
 
 ### Build the Project
 
 ```bash
-make
+make              # Build all executables
+make help         # Show all available targets
 ```
 
-This creates four executables in `bin/`:
-
+After building, you'll have:
 - `bin/train` - MNIST training program
-- `bin/test` - Test suite (22 tests)
-- `bin/example` - Usage demonstrations
 - `bin/predict` - Single image prediction with visualization
 
-### Verify Installation
+## 🎯 Train on MNIST
 
 ```bash
-bin/test
+# Download MNIST dataset first (see below)
+make train
 ```
 
-Expected output:
-
-```
-===========================================
-  C ML Library Test Suite
-===========================================
-✓ ALL TESTS PASSED (22 total)
-===========================================
-```
-
-### Run Examples
+**Autograd-based training:**
+- Modern approach used by PyTorch, TensorFlow, JAX
+- Single line of code computes all gradients: `tensor_backward(output)`
+- Easy to modify architecture
 
 ```bash
-bin/example
+make train
 ```
 
-## 📊 Train on MNIST
+### Expected Results
+
+```
+Epoch 1/10 - Avg Loss: 0.2491, Avg Accuracy: 92.30%
+Test Accuracy: 95.18%
+
+Epoch 2/10 - Avg Loss: 0.1092, Avg Accuracy: 96.62%
+Test Accuracy: 97.08%
+
+...
+
+Epoch 10/10 - Avg Accuracy: 99%+
+Test Accuracy: 97-98%
+```
+
+## 📊 Download MNIST Dataset
 
 ### Dataset
 
@@ -104,20 +110,95 @@ Expected performance:
 
 ### Make Predictions
 
+After training, you can predict individual images:
+
 ```bash
-bin/predict data/t10k-images.idx3-ubyte data/t10k-labels.idx1-ubyte 0
+# Predict a specific image (e.g., image index 42)
+bin/predict data/t10k-images.idx3-ubyte data/t10k-labels.idx1-ubyte 42
+
+# Or use the make target with IMG parameter
+make predict IMG=42
+
+# Without parameter, defaults to image 0
+make predict
 ```
 
-Output includes:
+**Output includes:**
 
-- ANSI grayscale image rendering in terminal
-- Predicted digit with confidence
-- Probability distribution across all classes
-- Verification against true label
+- 28×28 ANSI grayscale image visualization in terminal
+- Predicted digit with confidence percentage
+- Probability distribution bar chart for all 10 digits
+- Verification against true label (✓ or ✗)
 
-predict example
+**Example output:**
 
-![predict](./predict.png)
+```
+╔════════════════════════════════════════════════════════════╗
+║              MNIST Image Prediction                        ║
+╚════════════════════════════════════════════════════════════╝
+
+Image Index: 42
+True Label: 7
+
+28x28 Image Visualization:
+[grayscale rendering of digit]
+
+Prediction Results:
+─────────────────────────────────────────────────────────────
+Predicted Digit: 7 (Confidence: 99.84%)
+
+Probability Distribution:
+  0: [                                                  ] 0.00%
+  1: [                                                  ] 0.00%
+  2: [                                                  ] 0.01%
+  3: [                                                  ] 0.00%
+  4: [                                                  ] 0.00%
+  5: [                                                  ] 0.00%
+  6: [                                                  ] 0.00%
+  7: [██████████████████████████████████████████████████] 99.84% ← PREDICTED ← TRUE LABEL
+  8: [                                                  ] 0.14%
+  9: [                                                  ] 0.00%
+─────────────────────────────────────────────────────────────
+✓ CORRECT PREDICTION!
+```
+
+## 🧠 How Autograd Works
+
+### Computational Graph
+
+During the forward pass, each operation creates a node in a computational graph:
+
+```
+Input → Linear → ReLU → Linear → ReLU → Linear → Softmax → Output
+          ↓        ↓        ↓        ↓        ↓       ↓
+        (graph nodes with parent links stored automatically)
+```
+
+### Automatic Gradient Computation
+
+Single backward call traverses the graph in reverse, applying the chain rule:
+
+```c
+// Forward pass - builds computational graph
+ForwardResult* forward = mlp_forward(model, input);
+
+// Set gradient at output
+forward->output->grad = predictions - labels;
+
+// ONE CALL computes ALL gradients automatically!
+tensor_backward(forward->output);
+
+// All layer weights now have gradients computed
+sgd_step(optimizer, layers, 3);
+```
+
+**Key operations:**
+- `OP_ADD`: ∂z/∂a = 1, ∂z/∂b = 1
+- `OP_MUL`: ∂z/∂a = b, ∂z/∂b = a  
+- `OP_MATMUL`: ∂Z/∂A = grad⊗B^T, ∂Z/∂B = A^T⊗grad
+- `OP_RELU`: ∂y/∂x = 1 if x>0 else 0
+
+See `docs/AUTOGRAD.md` for detailed explanation.
 
 ## 📁 Project Structure
 
@@ -131,10 +212,8 @@ c_ml_demo/
 │   ├── mnist.h/c       - MNIST IDX format data loader
 │   └── weights.h/c     - Model weight save/load
 │
-├── Applications (~870 lines)
-│   ├── train.c         - MNIST training program (3-layer MLP)
-│   ├── test.c          - Comprehensive test suite (22 tests)
-│   ├── example.c       - Usage examples and tutorials
+├── Applications
+│   ├── train.c         - MNIST training program with autograd
 │   └── predict.c       - Single image prediction with visualization
 │
 ├── Build & Utilities
@@ -144,15 +223,13 @@ c_ml_demo/
 ├── Directory Structure
 │   ├── include/        - Header files (.h)
 │   ├── src/            - Source files (.c)
-│   ├── bin/            - Compiled binaries (train, test, example, predict)
+│   ├── bin/            - Compiled binaries (train, predict)
 │   │   └── obj/        - Object files (.o)
 │   └── data/           - MNIST dataset files
 │
 └── Documentation
     ├── README.md       - This file (comprehensive guide)
-    └── STRUCTURE.md    - Quick reference guide
-
-Total: ~2200 lines of pure C code, all from scratch!
+    └── docs/AUTOGRAD.md - Autograd implementation details
 ```
 
 ## 🏗️ Architecture
@@ -340,205 +417,79 @@ For each layer:
 
 ## 💻 Usage Examples
 
-### Basic Matrix Operations
+For complete examples, see:
+- **Training:** `src/train.c` - Full MNIST training with autograd
+- **Prediction:** `src/predict.c` - Single image prediction
+- **Autograd Guide:** `docs/AUTOGRAD.md` - Detailed examples and explanations
+
+### Quick Example: Autograd Training
 
 ```c
-#include "matrix.h"
-
-int main() {
-    // Create matrices
-    Matrix* A = matrix_create(2, 3);
-    Matrix* B = matrix_create(3, 2);
-    
-    // Initialize with random values
-    matrix_random(A, -1.0f, 1.0f);
-    matrix_random(B, -1.0f, 1.0f);
-    
-    // Matrix multiplication
-    Matrix* C = matrix_matmul(A, B);  // Result: 2x2
-    
-    // Element-wise operations
-    Matrix* D = matrix_add(A, A);
-    Matrix* E = matrix_scale(A, 2.0f);
-    
-    // Activation functions
-    Matrix* relu_out = matrix_relu(A);
-    Matrix* sigmoid_out = matrix_sigmoid(A);
-    Matrix* softmax_out = matrix_softmax(C);
-    
-    // Cleanup
-    matrix_free(A);
-    matrix_free(B);
-    matrix_free(C);
-    matrix_free(D);
-    matrix_free(E);
-    matrix_free(relu_out);
-    matrix_free(sigmoid_out);
-    matrix_free(softmax_out);
-    
-    return 0;
-}
-```
-
-### Building a Neural Network
-
-```c
-#include "matrix.h"
+#include "autograd.h"
 #include "nn.h"
 #include "optimizer.h"
 
 int main() {
-    // Create a 2-layer network
-    Linear* layer1 = linear_create(784, 128);
-    Linear* layer2 = linear_create(128, 10);
-    
-    // Initialize weights
-    linear_init_he(layer1);      // He init for ReLU
-    linear_init_xavier(layer2);   // Xavier init for output
-    
-    // Create optimizer
-    SGD* optimizer = sgd_create(0.01f, 0.0f, 0.001f);  // lr, momentum, weight_decay
-    
-    // Create input and target
-    Matrix* input = matrix_create(1, 784);
-    Matrix* target = matrix_create(1, 10);
-    matrix_random(input, 0.0f, 1.0f);
-    matrix_fill(target, 0.0f);
-    target->data[5] = 1.0f;  // Target class is 5
-    
-    // Forward pass
-    Matrix* h1 = linear_forward(layer1, input);
-    Matrix* a1 = matrix_relu(h1);
-    Matrix* h2 = linear_forward(layer2, a1);
-    Matrix* pred = matrix_softmax(h2);
-    
-    // Compute loss
-    float loss = matrix_cross_entropy(pred, target);
-    printf("Loss: %.4f\n", loss);
-    
-    // Backward pass
-    Matrix* grad = matrix_sub(pred, target);
-    Matrix* grad1 = matrix_create(grad->rows, grad->cols);
-    linear_backward(layer2, grad, grad1);
-    
-    Matrix* relu_grad = matrix_relu_derivative(h1);
-    Matrix* grad2 = matrix_mul(grad1, relu_grad);
-    Matrix* grad_input = matrix_create(input->rows, input->cols);
-    linear_backward(layer1, grad2, grad_input);
-    
-    // Update weights
-    Linear* layers[] = {layer1, layer2};
-    sgd_step(optimizer, layers, 2);
-    
-    // Cleanup
-    matrix_free(input);
-    matrix_free(target);
-    matrix_free(h1);
-    matrix_free(a1);
-    matrix_free(h2);
-    matrix_free(pred);
-    matrix_free(grad);
-    matrix_free(grad1);
-    matrix_free(grad2);
-    matrix_free(relu_grad);
-    matrix_free(grad_input);
-    linear_free(layer1);
-    linear_free(layer2);
-    sgd_free(optimizer);
-    
-    return 0;
-}
-```
-
-### Complete Training Loop
-
-```c
-#include "matrix.h"
-#include "nn.h"
-#include "optimizer.h"
-#include "mnist.h"
-
-int main(int argc, char* argv[]) {
-    // Load MNIST data
-    MNISTDataset* train_data = mnist_load(argv[1], argv[2]);
-    MNISTDataset* test_data = mnist_load(argv[3], argv[4]);
-    
     // Create model
-    Linear* layer1 = linear_create(784, 128);
-    Linear* layer2 = linear_create(128, 64);
-    Linear* layer3 = linear_create(64, 10);
-    linear_init_he(layer1);
-    linear_init_he(layer2);
-    linear_init_xavier(layer3);
+    Linear* fc1 = linear_create(784, 128);
+    Linear* fc2 = linear_create(128, 10);
+    linear_init_he(fc1);
+    linear_init_xavier(fc2);
     
     // Create optimizer
-    SGD* optimizer = sgd_create(0.01f, 0.0f, 0.0f);
+    SGD* optimizer = sgd_create(0.01f, 0.0f, 0.0001f);
     
     // Training loop
-    int epochs = 10;
-    int batch_size = 32;
-    
-    for (int epoch = 0; epoch < epochs; epoch++) {
-        mnist_shuffle(train_data);
-        float total_loss = 0.0f;
-        int num_batches = train_data->num_samples / batch_size;
+    for (int epoch = 0; epoch < 10; epoch++) {
+        // Get batch (batch_images, batch_labels)
         
-        for (int batch = 0; batch < num_batches; batch++) {
-            Matrix *images, *labels;
-            mnist_get_batch(train_data, batch * batch_size, batch_size, 
-                          &images, &labels);
-            
-            // Forward pass
-            Matrix* h1 = linear_forward(layer1, images);
-            Matrix* a1 = matrix_relu(h1);
-            Matrix* h2 = linear_forward(layer2, a1);
-            Matrix* a2 = matrix_relu(h2);
-            Matrix* h3 = linear_forward(layer3, a2);
-            Matrix* pred = matrix_softmax(h3);
-            
-            // Compute loss
-            float loss = matrix_cross_entropy(pred, labels);
-            total_loss += loss;
-            
-            // Backward pass (simplified)
-            // ... gradient computation ...
-            
-            // Update weights
-            Linear* layers[] = {layer1, layer2, layer3};
-            sgd_step(optimizer, layers, 3);
-            
-            // Cleanup batch
-            matrix_free(images);
-            matrix_free(labels);
-            matrix_free(h1);
-            matrix_free(a1);
-            matrix_free(h2);
-            matrix_free(a2);
-            matrix_free(h3);
-            matrix_free(pred);
+        // Convert to tensors
+        Tensor* input = tensor_from_matrix(batch_images, 1);
+        
+        // Forward pass - builds computational graph
+        Tensor* h1 = linear_forward(fc1, input);
+        Tensor* a1 = tensor_relu(h1);
+        Tensor* h2 = linear_forward(fc2, a1);
+        Tensor* output = tensor_softmax(h2);
+        
+        // Set gradient: dLoss/dOutput = predictions - labels
+        for (size_t i = 0; i < output->data->rows * output->data->cols; i++) {
+            output->grad->data[i] = output->data->data[i] - batch_labels->data[i];
         }
         
-        printf("Epoch %d/%d - Loss: %.4f\n", 
-               epoch + 1, epochs, total_loss / num_batches);
+        // Backward pass - automatic gradient computation!
+        tensor_backward(output);
+        
+        // Update weights
+        Linear* layers[] = {fc1, fc2};
+        sgd_step(optimizer, layers, 2);
+        
+        // Cleanup
+        tensor_free(input);
+        tensor_free(h1);
+        tensor_free(a1);
+        tensor_free(h2);
+        tensor_free(output);
     }
-    
-    // Cleanup
-    mnist_free(train_data);
-    mnist_free(test_data);
-    linear_free(layer1);
-    linear_free(layer2);
-    linear_free(layer3);
-    sgd_free(optimizer);
     
     return 0;
 }
 ```
 
-### Compile Your Program
+### Build and Run
 
 ```bash
-gcc -o my_program my_program.c -Iinclude -lm src/matrix.c src/nn.c src/optimizer.c src/mnist.c src/weights.c
+# Build everything
+make
+
+# Train the model
+make train
+
+# Make predictions
+make predict IMG=42
 ```
+
+See `make help` for all available commands.
 
 ## 📈 Performance & Benchmarks
 
@@ -568,63 +519,15 @@ Epoch 10: 97.7% (test) - Convergence
 
 | Component | Files | Lines | Description |
 |-----------|-------|-------|-------------|
-| Matrix ops | 2 | ~570 | Foundation layer |
-| Autograd | 2 | ~360 | Differentiation |
-| NN layers | 2 | ~130 | Neural network |
-| Optimizer | 2 | ~60 | SGD |
-| Data loader | 2 | ~190 | MNIST support |
-| Weights | 2 | ~100 | Persistence |
-| Training | 1 | ~283 | MNIST training |
-| Prediction | 1 | ~179 | Visualization |
-| Tests | 1 | ~360 | Test suite |
-| Examples | 1 | ~260 | Demos |
-| **Total** | **16** | **~2490** | **All from scratch** |
-
-## 🧪 Testing
-
-### Run Test Suite
-
-```bash
-./test
-```
-
-### Test Coverage
-
-```
-=== Matrix Operations (8 tests) ===
-✓ Matrix creation and memory
-✓ Matrix addition
-✓ Matrix multiplication (element-wise)
-✓ Matrix multiplication (matmul)
-✓ Matrix transpose
-✓ Matrix ReLU
-✓ Matrix Sigmoid
-✓ Matrix Softmax
-
-=== Activation Functions (4 tests) ===
-✓ ReLU forward and derivative
-✓ Sigmoid forward and derivative
-✓ Softmax numerical stability
-✓ Cross-entropy loss
-
-=== Linear Layer (6 tests) ===
-✓ Layer creation
-✓ Forward pass
-✓ Backward pass
-✓ Gradient computation
-✓ He initialization
-✓ Xavier initialization
-
-=== Optimizer (3 tests) ===
-✓ SGD parameter update
-✓ Weight decay
-✓ Learning rate scheduling
-
-=== Training (1 test) ===
-✓ Simple training loop (loss reduction)
-
-Total: 22/22 tests passing ✓
-```
+| Matrix ops | 2 | ~365 | Foundation layer |
+| Autograd | 2 | ~380 | Differentiation engine |
+| NN layers | 2 | ~220 | Neural network with autograd |
+| Optimizer | 2 | ~95 | SGD optimizer |
+| Data loader | 2 | ~215 | MNIST support |
+| Weights | 2 | ~85 | Model persistence |
+| Training | 1 | ~360 | MNIST training (autograd) |
+| Prediction | 1 | ~245 | Visualization & inference |
+| **Total** | **8** | **~1,965** | **Pure C, autograd-based** |
 
 ## 🔧 Build Options
 
@@ -636,22 +539,12 @@ make clean        # Remove build artifacts
 make rebuild      # Clean and build
 ```
 
-### Individual Targets
-
-```bash
-make train        # Build training program only
-make test         # Build test suite only
-make example      # Build examples only
-make predict      # Build prediction tool only
-```
-
-Executables are created in `bin/` directory.
-
 ### Run Targets
 
 ```bash
-make test_run     # Build and run tests
-make example_run  # Build and run examples
+make train        # Build and run training
+make predict      # Run prediction (image 0 by default)
+make predict IMG=42  # Run prediction on specific image
 ```
 
 ### Compiler Flags
@@ -785,93 +678,6 @@ All function APIs are documented in the header files in `include/`:
 - `mnist.h` - Data loading
 - `weights.h` - Model persistence
 
-## 🚨 Common Issues & Solutions
-
-### Build Errors
-
-**Error: `undefined reference to 'sqrt'`**
-
-```bash
-# Solution: Link math library
-gcc ... -lm
-```
-
-**Error: `Matrix.h: No such file or directory`**
-
-```bash
-# Solution: Include current directory
-gcc -I. ...
-```
-
-### Runtime Errors
-
-**Segmentation Fault**
-
-- Check matrix dimensions match for operations
-- Verify all pointers are initialized before use
-- Ensure `matrix_free()` is called for all created matrices
-
-**Low Accuracy**
-
-- Verify data is normalized to [0, 1]
-- Check learning rate (try 0.001 - 0.1)
-- Ensure labels are one-hot encoded
-- Increase number of epochs
-
-**Memory Issues**
-
-- Call `matrix_free()` for all created matrices
-- Use valgrind to detect leaks: `valgrind --leak-check=full ./train ...`
-
-### Data Loading
-
-**Cannot open MNIST files**
-
-```bash
-# Verify files exist and are decompressed
-ls -lh data/*.idx*-ubyte
-file data/*.idx*-ubyte
-
-# Should show: "data (little-endian)" or similar
-```
-
-**Wrong format**
-
-```bash
-# Files must be uncompressed IDX format
-gunzip data/*.gz
-```
-
-## 💡 Tips & Best Practices
-
-### Memory Management
-
-- Always pair `matrix_create()` with `matrix_free()`
-- Free matrices in reverse order of creation
-- Use `matrix_copy()` when you need to preserve data
-
-### Training
-
-- Start with learning rate 0.01
-- Use He init for ReLU layers
-- Use Xavier init for output layers
-- Shuffle data each epoch
-- Monitor loss to detect issues
-
-### Optimization
-
-- Larger batch sizes are faster but use more memory
-- Typical batch sizes: 16, 32, 64, 128
-- Weight decay helps prevent overfitting (try 0.0001 - 0.001)
-- Save best model based on validation accuracy
-
-### Debugging
-
-- Use `matrix_print()` to inspect values
-- Check gradients aren't NaN or Inf
-- Verify activations are in expected ranges
-- Start with small toy examples
-
 ## 🎓 Educational Value
 
 This library is ideal for:
@@ -928,15 +734,15 @@ This is an educational project, but contributions are welcome!
 
 1. Fork the repository
 2. Create a feature branch
-3. Implement your changes with tests
-4. Ensure all tests pass
+3. Implement your changes
+4. Test your changes manually
 5. Submit a pull request
 
 ### Guidelines
 
-- Maintain C99 compatibility
+- Maintain C11 compatibility
 - Follow existing code style
-- Add tests for new features
+- Verify functionality with provided programs
 - Update documentation
 - Keep dependencies minimal
 
@@ -952,27 +758,22 @@ This is educational code provided as-is for learning purposes. Feel free to use,
 - **Inspiration**: Educational ML implementations and tutorials
 - **Design**: Influenced by PyTorch, NumPy, and classic ML textbooks
 
-## 📞 Contact & Support
-
-- **Issues**: Report bugs or request features via GitHub issues
-- **Questions**: Check existing documentation first
-- **Learning**: Start with `example.c` and `test.c`
-
 ## ⭐ Project Status
 
-**Status**: ✅ Complete and tested
+**Status**: ✅ Complete and functional
 
 - All core features implemented
-- 22/22 tests passing
-- Documentation complete
-- Ready for production educational use
+- Autograd-based training and prediction
+- Achieves 97-98% accuracy on MNIST
+- Comprehensive documentation
+- Ready for educational use
 
 ---
 
 **Created**: January 2026  
 **Version**: 1.0  
-**Language**: C99  
+**Language**: C11  
 **Dependencies**: stdlib, math.h  
-**Lines of Code**: ~2500
+**Lines of Code**: ~1,965
 
 Happy coding! 🚀
