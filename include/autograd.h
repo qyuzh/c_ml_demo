@@ -4,25 +4,26 @@
 #include "matrix.h"
 
 typedef enum {
-    OP_NONE,
-    OP_ADD,
-    OP_SUB,
-    OP_MUL,
-    OP_MATMUL,
-    OP_RELU,
-    OP_SIGMOID,
-    OP_SOFTMAX
+  OP_NONE,
+  OP_ADD,
+  OP_SUB,
+  OP_MUL,
+  OP_MATMUL,
+  OP_RELU,
+  OP_SIGMOID,
+  OP_SOFTMAX,
+  OP_BROADCAST_ADD  // For broadcasting bias across batch dimension
 } OpType;
 
 typedef struct Tensor Tensor;
 
 struct Tensor {
-    Matrix* data;
-    Matrix* grad;
-    OpType op;
-    Tensor* parent1;
-    Tensor* parent2;
-    int requires_grad;
+  Matrix* data;
+  Matrix* grad;
+  OpType op;
+  Tensor* parent1;
+  Tensor* parent2;
+  int requires_grad;
 };
 
 // Tensor creation and destruction
@@ -38,6 +39,7 @@ Tensor* tensor_matmul(Tensor* a, Tensor* b);
 Tensor* tensor_relu(Tensor* a);
 Tensor* tensor_sigmoid(Tensor* a);
 Tensor* tensor_softmax(Tensor* a);
+Tensor* tensor_broadcast_add(Tensor* a, Tensor* b);  // a: [N, M], b: [1, M]
 
 // Backward operations
 void tensor_backward(Tensor* t);
@@ -46,4 +48,4 @@ void tensor_zero_grad(Tensor* t);
 // Utility functions
 void tensor_print(const Tensor* t);
 
-#endif // AUTOGRAD_H
+#endif  // AUTOGRAD_H

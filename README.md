@@ -29,15 +29,26 @@ A machine learning library written in **pure C** with **automatic differentiatio
 
 ## ✨ Features
 
+### Core Capabilities
+
 - **Matrix Operations**: Complete matrix math library (create, add, sub, mul, matmul, transpose, scale)
 - **Automatic Differentiation**: Full computational graph with reverse-mode autograd
+  - **Complete Integration**: Bias gradients computed automatically via broadcast operations
+  - **No Manual Gradients**: Single `tensor_backward()` call computes all gradients
 - **Tensor API**: PyTorch-style tensors with gradient tracking
-- **Neural Network Layers**: Linear layers with autograd support
+- **Neural Network Layers**: Linear layers with full autograd support (weights + biases)
 - **Activation Functions**: ReLU, Sigmoid, Softmax with automatic gradient computation
-- **Optimizer**: SGD optimizer with weight decay
+- **Optimizer**: SGD optimizer with momentum and weight decay
 - **Model Persistence**: Save and load trained model weights
 - **MNIST Training**: Complete MNIST training pipeline achieving ~97-98% accuracy
 - **Pure C Implementation**: No external dependencies except standard math library
+
+### Architecture Highlights
+
+- **Modular Design**: Clean separation of concerns (config, trainer, metrics)
+- **Maintainable**: Each module < 200 lines, single responsibility
+- **Extensible**: Easy to add new layers, optimizers, or datasets
+- **Educational**: Clear implementation showing how modern ML frameworks work
 
 ## 🚀 Quick Start
 
@@ -49,6 +60,7 @@ make help         # Show all available targets
 ```
 
 After building, you'll have:
+
 - `bin/train` - MNIST training program
 - `bin/predict` - Single image prediction with visualization
 
@@ -60,6 +72,7 @@ make train
 ```
 
 **Autograd-based training:**
+
 - Modern approach used by PyTorch, TensorFlow, JAX
 - Single line of code computes all gradients: `tensor_backward(output)`
 - Easy to modify architecture
@@ -88,6 +101,7 @@ Test Accuracy: 97-98%
 ### Dataset
 
 The MNIST dataset is **included in this repository** in the `data/` directory:
+
 - `train-images.idx3-ubyte` - 60,000 training images
 - `train-labels.idx1-ubyte` - Training labels
 - `t10k-images.idx3-ubyte` - 10,000 test images
@@ -193,6 +207,7 @@ sgd_step(optimizer, layers, 3);
 ```
 
 **Key operations:**
+
 - `OP_ADD`: ∂z/∂a = 1, ∂z/∂b = 1
 - `OP_MUL`: ∂z/∂a = b, ∂z/∂b = a  
 - `OP_MATMUL`: ∂Z/∂A = grad⊗B^T, ∂Z/∂B = A^T⊗grad
@@ -418,6 +433,7 @@ For each layer:
 ## 💻 Usage Examples
 
 For complete examples, see:
+
 - **Training:** `src/train.c` - Full MNIST training with autograd
 - **Prediction:** `src/predict.c` - Single image prediction
 - **Autograd Guide:** `docs/AUTOGRAD.md` - Detailed examples and explanations
@@ -667,16 +683,25 @@ int load_weights(const char* filename, Linear** layers, size_t num_layers);
   - Practical examples with visual diagrams
   - Mathematical foundations and comparison with other AD methods
 
+- **[Refactoring Summary](docs/REFACTORING.md)** - Recent improvements to the codebase
+  - Complete autograd integration for bias gradients
+  - Modular architecture design
+  - Code organization and maintainability improvements
+  - Before/after comparisons
+
 ### API Documentation
 
 All function APIs are documented in the header files in `include/`:
 
 - `matrix.h` - Matrix operations
-- `autograd.h` - Automatic differentiation
+- `autograd.h` - Automatic differentiation (including broadcast operations)
 - `nn.h` - Neural network layers
 - `optimizer.h` - Optimization algorithms
 - `mnist.h` - Data loading
 - `weights.h` - Model persistence
+- `config.h` - Training configuration management
+- `trainer.h` - High-level training orchestration
+- `metrics.h` - Training metrics and accuracy tracking
 
 ## 🎓 Educational Value
 

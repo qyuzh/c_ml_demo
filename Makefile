@@ -11,7 +11,8 @@ BIN_DIR = bin
 OBJ_DIR = $(BIN_DIR)/obj
 
 # Library source files
-LIB_SRCS = matrix.c nn.c optimizer.c mnist.c autograd.c weights.c mlp_model.c
+LIB_SRCS = matrix.c nn.c optimizer.c mnist.c autograd.c weights.c mlp_model.c \
+           config.c metrics.c trainer.c
 LIB_OBJS = $(LIB_SRCS:%.c=$(OBJ_DIR)/%.o)
 
 # Application source files
